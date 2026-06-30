@@ -18,6 +18,7 @@
 #define PIN_SERVO_AILERON    4
 #define PIN_SERVO_ELEVATOR   12
 #define PIN_SERVO_THROTTLE   15
+#define PIN_SERVO_RUDDER     13
 
 // LED indicator
 #define PIN_LED_STATUS       2

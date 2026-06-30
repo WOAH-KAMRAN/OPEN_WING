@@ -198,6 +198,7 @@ void highFrequencyTask(void *parameter) {
         pwm_output.writeServo(LEDC_CHANNEL_0, shared_data.control_output.aileron);
         pwm_output.writeServo(LEDC_CHANNEL_1, shared_data.control_output.elevator);
         pwm_output.writeServo(LEDC_CHANNEL_2, shared_data.control_output.throttle);
+        pwm_output.writeServo(LEDC_CHANNEL_3, shared_data.control_output.rudder);
 
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(HIGH_FREQ_PERIOD_MS));
     }
@@ -377,10 +378,12 @@ void setup() {
     ServoConfig aileron_config = {SERVO_AILERON_PIN, LEDC_CHANNEL_0, PWM_MIN_US, PWM_MAX_US, -1.0f, 1.0f};
     ServoConfig elevator_config = {SERVO_ELEVATOR_PIN, LEDC_CHANNEL_1, PWM_MIN_US, PWM_MAX_US, -1.0f, 1.0f};
     ServoConfig throttle_config = {SERVO_THROTTLE_PIN, LEDC_CHANNEL_2, PWM_MIN_US, PWM_MAX_US, 0.0f, 1.0f};
+    ServoConfig rudder_config = {PIN_SERVO_RUDDER, LEDC_CHANNEL_3, PWM_MIN_US, PWM_MAX_US, -1.0f, 1.0f};
 
     pwm_output.configureServo(aileron_config);
     pwm_output.configureServo(elevator_config);
     pwm_output.configureServo(throttle_config);
+    pwm_output.configureServo(rudder_config);
     Serial.println("Servos configured");
 
     if (!telemetry.begin()) {

@@ -50,6 +50,7 @@ void FlightControl::begin() {
     output.aileron = 0.0f;
     output.elevator = 0.0f;
     output.throttle = 0.0f;
+    output.rudder = 0.0f;
     output.timestamp = 0;
 }
 
@@ -134,6 +135,7 @@ void FlightControl::updateManual() {
     output.aileron = mapRC(rc_input.channels[0], 1000.0f, 2000.0f, -1.0f, 1.0f);
     output.elevator = mapRC(rc_input.channels[1], 1000.0f, 2000.0f, -1.0f, 1.0f);
     output.throttle = mapRC(rc_input.channels[2], 1000.0f, 2000.0f, 0.0f, 1.0f);
+    output.rudder = mapRC(rc_input.channels[3], 1000.0f, 2000.0f, -1.0f, 1.0f);
 }
 
 void FlightControl::updateFBWA(const MPU6050Data &imu_data) {
@@ -155,6 +157,7 @@ void FlightControl::updateFBWA(const MPU6050Data &imu_data) {
     output.aileron = roll_rate_pid.update(desired_roll_rate, measured_roll_rate, dt);
     output.elevator = pitch_rate_pid.update(desired_pitch_rate, measured_pitch_rate, dt);
     output.throttle = rc_throttle;
+    output.rudder = mapRC(rc_input.channels[3], 1000.0f, 2000.0f, -1.0f, 1.0f);
 }
 
 void FlightControl::applyLimits() {
@@ -166,4 +169,7 @@ void FlightControl::applyLimits() {
     
     if (output.throttle > 1.0f) output.throttle = 1.0f;
     if (output.throttle < 0.0f) output.throttle = 0.0f;
+
+    if (output.rudder > 1.0f) output.rudder = 1.0f;
+    if (output.rudder < -1.0f) output.rudder = -1.0f;
 }

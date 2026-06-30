@@ -13,6 +13,7 @@ struct ControlOutput {
     float aileron;
     float elevator;
     float throttle;
+    float rudder;
     uint32_t timestamp;
 };
 

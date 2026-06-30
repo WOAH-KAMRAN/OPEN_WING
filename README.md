@@ -1,6 +1,6 @@
 # Fixed-Wing Flight Controller Firmware
 <p align="center">
-  <img src="assets/banner.png" alt="Banner" width="100%">
+  <img src="firmware/assets/banner.png" alt="Banner" width="100%">
 </p>
 A modular, real-time flight controller firmware for ESP32 designed for fixed-wing aircraft.
 
@@ -18,7 +18,7 @@ A modular, real-time flight controller firmware for ESP32 designed for fixed-win
 The firmware follows a modular architecture with clear separation of concerns:
 
 ```
-src/
+firmware/src/
 ├── config/          # Configuration and pin definitions
 ├── sensors/         # Sensor drivers (MPU6050, Magnetometer)
 ├── ahrs/            # Attitude estimation (Madgwick filter)
@@ -86,14 +86,14 @@ HELP                          Show this help
 
 PID gains, gyro bias, magnetometer calibration, and home position are stored in ESP32 non-volatile memory via the `Preferences` library:
 
-- **`config/pins.h`** — Hardware pin definitions
-- **`config/config.h`** — System configuration and `FlightMode` enum
-- **`storage/flash_manager.h`** — `PersistentConfig` struct and `FlashManager` class
-- **`control/flight_control.cpp`** — `loadFromFlash()` / `saveToFlash()` methods
+- **`firmware/src/config/pins.h`** — Hardware pin definitions
+- **`firmware/src/config/config.h`** — System configuration and `FlightMode` enum
+- **`firmware/src/storage/flash_manager.h`** — `PersistentConfig` struct and `FlashManager` class
+- **`firmware/src/control/flight_control.cpp`** — `loadFromFlash()` / `saveToFlash()` methods
 
 ## Pin Configuration
 
-Default pin assignments (configurable in `config/config.h`):
+Default pin assignments (configurable in `firmware/src/config/pins.h`):
 
 - **I2C SDA**: GPIO 21
 - **I2C SCL**: GPIO 22
@@ -104,7 +104,23 @@ Default pin assignments (configurable in `config/config.h`):
 - **Servo Aileron**: GPIO 4
 - **Servo Elevator**: GPIO 12
 - **Servo Throttle**: GPIO 15
+- **Servo Rudder**: GPIO 13
 - **Built-in LED**: GPIO 2 (status indication)
+
+## RC Channel Mapping
+
+- **CH1**: Aileron
+- **CH2**: Elevator
+- **CH3**: Throttle
+- **CH4**: Rudder
+- **CH5**: Aux
+- **CH6**: Mode selection
+
+### Mode Selection
+
+- **< 1300**: MANUAL
+- **1300–1700**: FBWA
+- **> 1700**: STABILIZE
 
 ## Building and Flashing
 
@@ -117,19 +133,50 @@ Default pin assignments (configurable in `config/config.h`):
 ### Build
 
 ```bash
+cd firmware
 pio run
 ```
 
 ### Upload
 
 ```bash
+cd firmware
 pio run --target upload
 ```
 
 ### Monitor Serial Output
 
 ```bash
+cd firmware
 pio device monitor
+```
+
+## Ground Control Station (GCS)
+
+There are two ways to interact with the flight controller:
+
+### 1. Onboard Web UI (Phone/Laptop Browser)
+
+The ESP32 runs a lightweight web server that provides a real-time flight dashboard — no app installation needed.
+
+1. Power on the flight controller
+2. Connect to the **OpenWing_FC** WiFi network (no password)
+3. Open a browser and navigate to **http://192.168.4.1**
+4. View attitude, flight mode, and PID values in real-time
+
+### 2. Desktop PWA (USB Serial or WiFi)
+
+A full-featured React PWA is available under `gcs/`. It provides an advanced ground control interface with:
+
+- Flight dashboard with artificial horizon and compass
+- PID tuning panel with read/write controls
+- GPS map with CartoDB dark tiles
+- Serial or WebSocket connection
+
+```bash
+cd gcs
+npm install   # first time only
+npm run dev   # starts at http://localhost:3000
 ```
 
 ## Calibration
@@ -142,7 +189,7 @@ Gyro bias calibration is performed automatically at startup. Keep the sensor sti
 
 To calibrate the magnetometer:
 
-1. Uncomment the calibration code in `main.cpp`
+1. Uncomment the calibration code in `firmware/src/main.cpp`
 2. Flash the firmware
 3. Move the sensor in a figure-8 pattern
 4. The calibration values will be printed to serial
@@ -177,22 +224,7 @@ Total:  64 bytes
 | 0   | 0x01 | Mag healthy   |
 | 1   | 0x02 | Home set      |
 | 2   | 0x04 | GPS fix       |
-| 3-7| —    | Reserved      |
-
-## RC Channel Mapping
-
-- **CH1**: Aileron
-- **CH2**: Elevator
-- **CH3**: Throttle
-- **CH4**: Rudder
-- **CH5**: Aux
-- **CH6**: Mode selection
-
-### Mode Selection
-
-- **< 1300**: MANUAL
-- **1300-1700**: FBWA
-- **> 1700**: STABILIZE
+| 3-7 | —    | Reserved      |
 
 ## Safety Features
 
@@ -202,32 +234,9 @@ Total:  64 bytes
 - **Mutex protection**: Thread-safe data sharing between tasks
 - **Magnetometer failure fallback**: After 3 consecutive read failures, AHRS falls back to IMU-only mode (`updateIMU()`); background retry attempts re-init every ~1s
 
-## Onboard Ground Control Station (Web UI)
-
-The firmware includes a lightweight web server that runs directly on the ESP32, providing a real-time flight dashboard accessible from any phone or laptop browser — no app installation needed.
-
-### Connecting
-
-1. Power on the flight controller
-2. Connect your phone or laptop to the **OpenWing_FC** WiFi network (no password)
-3. Open a browser and navigate to **http://192.168.4.1**
-4. The dashboard displays:
-   - **Attitude**: Roll, Pitch, Yaw in real-time (updated every 300ms)
-   - **Flight Mode**: Current operating mode
-   - **PID Values**: Gains for all four controllers (Roll Rate, Pitch Rate, Roll Angle, Pitch Angle)
-
-The web server is always active at boot and runs on the background idle task, with minimal impact on flight performance.
-
-### Technical Details
-
-- The web server reads flight data directly from shared memory (mutex-protected)
-- Serves a minimal (~3KB) HTML page with dark theme, no external dependencies
-- Data endpoint: `GET /data` returns JSON with attitude, PID values, and flight mode
-- The ESP32 operates as a WiFi Access Point — no router needed
-
 ## LED Status Indicators
 
-The built-in LED (GPIO 2, shared with `SERVO_ELEVATOR_PIN` in earlier revisions — now moved to GPIO 12) provides visual feedback during initialization and operation:
+The built-in LED (GPIO 2) provides visual feedback:
 
 ### Initialization Sequence
 
@@ -241,11 +250,6 @@ The built-in LED (GPIO 2, shared with `SERVO_ELEVATOR_PIN` in earlier revisions 
 - **5 blinks (200ms) repeating**: MPU6050 sensor not detected
 - **3 blinks (200ms) repeating**: IBUS RC receiver not detected
 
-### Normal Operation
-
-- **LED off**: Normal operation (no continuous indication)
-- **Future**: Consider adding heartbeat blink or mode-specific patterns
-
 ## Key Design Decisions
 
 1. **Modular Architecture**: Clear separation of concerns for maintainability
@@ -258,20 +262,20 @@ The built-in LED (GPIO 2, shared with `SERVO_ELEVATOR_PIN` in earlier revisions 
 
 ### Adding New Flight Modes
 
-1. Add mode to `FlightMode` enum in `config.h`
-2. Implement mode logic in `flight_control.cpp`
-3. Add mode selection logic in `main.cpp`
+1. Add mode to `FlightMode` enum in `firmware/src/config/config.h`
+2. Implement mode logic in `firmware/src/control/flight_control.cpp`
+3. Add mode selection logic in `firmware/src/main.cpp`
 
 ### Adding New Sensors
 
-1. Create driver in `sensors/` directory
+1. Create driver in `firmware/src/sensors/`
 2. Integrate sensor reading in high-frequency task
 3. Update AHRS filter if needed
 
 ### Adding New Telemetry Fields
 
-1. Update `TelemetryPacket` struct in `telemetry.h`
-2. Update packet construction in `telemetry.cpp`
+1. Update `TelemetryPacket` struct in `firmware/src/telemetry/telemetry.h`
+2. Update packet construction in `firmware/src/telemetry/telemetry.cpp`
 3. Update checksum calculation
 
 ## Troubleshooting
@@ -300,9 +304,24 @@ The built-in LED (GPIO 2, shared with `SERVO_ELEVATOR_PIN` in earlier revisions 
 - Check baud rate (115200)
 - Verify RC transmitter is bound
 
+## Project Structure
+
+```
+openwing/
+├── firmware/              # ESP32 flight controller firmware (PlatformIO)
+│   ├── src/               # C++ source
+│   ├── platformio.ini     # Build configuration
+│   └── README.md          # Firmware-specific docs
+├── gcs/                   # Ground Control Station (React PWA)
+│   ├── gcs/               # App source
+│   ├── protocol/          # Telemetry protocol spec
+│   └── package.json       # Node dependencies
+└── README.md              # This file
+```
+
 ## License
 
-This firmware is provided as-is for educational and hobby use. Use at your own risk.
+This project is provided as-is for educational and hobby use. Use at your own risk.
 
 ## Contributing
 
