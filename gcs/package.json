@@ -1,0 +1,20 @@
+{
+  "name": "openwing-gcs",
+  "version": "1.0.0",
+  "description": "OpenWing Ground Control Station",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^4.5.0"
+  }
+}
