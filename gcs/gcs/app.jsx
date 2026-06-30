@@ -15,6 +15,7 @@ const App = () => {
   const [connectionType, setConnectionType] = useState('serial');
   const [connected, setConnected] = useState(false);
   const [wifiUrl, setWifiUrl] = useState('ws://192.168.4.1:8080');
+  const [systemTime, setSystemTime] = useState('');
 
   const stateManagerRef = React.useRef(new StateManager());
   const parserRef = React.useRef(new ProtocolParser('firmware'));
@@ -27,14 +28,18 @@ const App = () => {
     serialRef.current = new SerialConnection(handleData, handleError);
     wsRef.current = new WebSocketConnection(handleData, handleError);
 
-    const unsubscribe = stateManagerRef.current.subscribe((newState, msgId) => {
-      forceUpdate();
-    });
+    const unsubscribe = stateManagerRef.current.subscribe(() => forceUpdate());
+
+    const clock = setInterval(() => {
+      const now = new Date();
+      setSystemTime(now.toLocaleTimeString('en-US', { hour12: false }));
+    }, 1000);
 
     return () => {
       unsubscribe();
       serialRef.current?.disconnect();
       wsRef.current?.disconnect();
+      clearInterval(clock);
     };
   }, []);
 
@@ -112,14 +117,26 @@ const App = () => {
 
   const isStale = stateManagerRef.current.isStale();
 
+  const connectionClass = connected ? 'connected' : 'disconnected';
   const dotClass = connected ? 'dot dot-green' : isStale ? 'dot dot-red' : 'dot dot-yellow';
   const statusText = connected ? 'Connected' : isStale ? 'Stale' : 'Disconnected';
 
   return (
     <div className="app-container">
+      <div className="tactical-grid" />
+
       <header className="header">
-        <h1>OpenWing GCS</h1>
+        <div className="header-left">
+          <div className="header-logo">OW</div>
+          <div>
+            <h1>OpenWing GCS</h1>
+            <div className="header-subtitle">Ground Control Station</div>
+          </div>
+        </div>
+
         <div className="header-controls">
+          <span className="header-time">{systemTime}</span>
+
           <select
             value={connectionType}
             onChange={(e) => setConnectionType(e.target.value)}
@@ -156,7 +173,7 @@ const App = () => {
             Disconnect
           </button>
 
-          <div className="connection-indicator card">
+          <div className={`connection-indicator ${connectionClass}`}>
             <span className={dotClass} />
             <span>{statusText}</span>
           </div>
@@ -175,7 +192,7 @@ const App = () => {
         ))}
       </nav>
 
-      <main>
+      <main key={activeTab} className="page-enter">
         {activeTab === 'dashboard' && <Dashboard state={state} />}
         {activeTab === 'pid' && <PIDPanel state={state} onSetPid={handleSetPid} onGetPid={handleGetPid} />}
         {activeTab === 'compass' && <CompassView state={state} />}

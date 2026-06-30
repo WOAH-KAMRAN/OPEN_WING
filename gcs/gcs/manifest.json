@@ -4,8 +4,8 @@
   "description": "Ground Control Station for OpenWing flight controller",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f0f0f0",
-  "theme_color": "#333333",
+  "background_color": "#060a12",
+  "theme_color": "#060a12",
   "orientation": "any",
   "icons": [
     {
